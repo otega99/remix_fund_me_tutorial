@@ -1,5 +1,10 @@
 {
   "contracts/FundMe.sol": {
-    "__sources__": {}
+    "__sources__": {
+      "contracts/FundMe.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\n\r\npragma solidity ^0.8.18;\r\n\r\ncontract FundMe{\r\n\r\n    uint256 public minimumUsd=5;\r\n \r\n    function fund() public payable {\r\n        require(msg.value >= minimumUsd,\"didn't send enough eth\");\r\n        \r\n    }\r\n\r\n    // function withdraw() public {\r\n\r\n    // }\r\n}",
+        "file": "contracts/FundMe.sol"
+      }
+    }
   }
 }
