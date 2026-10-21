@@ -1,9 +1,45 @@
 {
+  ".deps/npm/@chainlink/contracts@1.5.0/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+    "__sources__": {
+      ".deps/npm/@chainlink/contracts@1.5.0/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n// solhint-disable-next-line interface-starts-with-i\ninterface AggregatorV3Interface {\n  function decimals() external view returns (uint8);\n\n  function description() external view returns (string memory);\n\n  function version() external view returns (uint256);\n\n  function getRoundData(\n    uint80 _roundId\n  ) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n\n  function latestRoundData()\n    external\n    view\n    returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n}\n",
+        "file": ".deps/npm/@chainlink/contracts@1.5.0/src/v0.8/shared/interfaces/AggregatorV3Interface.sol"
+      }
+    }
+  },
+  "contracts/SafeMathTester.sol": {
+    "__sources__": {
+      "contracts/SafeMathTester.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\n\r\npragma solidity ^0.8.18;\r\n\r\ncontract SafeMathTester{\r\n    uint8 public bigNumber=255;\r\n\r\n    function add() public {\r\n        unchecked{bigNumber=bigNumber+1;}\r\n    }\r\n}",
+        "file": "contracts/SafeMathTester.sol"
+      }
+    }
+  },
+  "contracts/FallbackExample.sol": {
+    "__sources__": {
+      "contracts/FallbackExample.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\n\r\npragma solidity ^0.8.18;\r\n\r\ncontract FallbackExample{\r\n    uint256 public result;\r\n\r\n    receive() external  payable { \r\n        result=1;\r\n    }\r\n\r\n    fallback() external payable{\r\n        result=2;\r\n    }\r\n}",
+        "file": "contracts/FallbackExample.sol"
+      }
+    }
+  },
+  "contracts/PriceConverter.sol": {
+    "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": ".deps/npm/@chainlink/contracts@1.5.0/src/v0.8/shared/interfaces/AggregatorV3Interface.sol"
+  },
   "contracts/FundMe.sol": {
+    "./PriceConverter.sol": "contracts/PriceConverter.sol",
     "__sources__": {
       "contracts/FundMe.sol": {
-        "content": "// SPDX-License-Identifier: MIT\r\n\r\npragma solidity ^0.8.18;\r\n\r\ncontract FundMe{\r\n\r\n    uint256 public minimumUsd=5;\r\n \r\n    function fund() public payable {\r\n        require(msg.value >= minimumUsd,\"didn't send enough eth\");\r\n        \r\n    }\r\n\r\n    // function withdraw() public {\r\n\r\n    // }\r\n}",
+        "content": "// SPDX-License-Identifier: MIT\r\n\r\npragma solidity ^0.8.18;\r\n\r\nimport {PriceConverter} from \"./PriceConverter.sol\";\r\n\r\nerror NotOwner();\r\n\r\ncontract FundMe{\r\n\r\n    using PriceConverter for  uint256;\r\n\r\n    uint256 public constant MINIMUM_USD=5e18;\r\n\r\n    address[] public funders;\r\n    mapping(address funder => uint256 amountFunded) public addressToAmountFunded;\r\n \r\n    address public immutable i_owner;\r\n\r\n    constructor(){\r\n        i_owner=msg.sender;\r\n    }\r\n\r\n    function fund() public payable {\r\n        require(msg.value.getConversionRate() >= MINIMUM_USD,\"didn't send enough eth\");\r\n        funders.push(msg.sender);\r\n        addressToAmountFunded[msg.sender] += msg.value;\r\n    }    \r\n\r\n    function withdraw() public onlyOwner {\r\n        for(uint256 funderIndex=0; funderIndex<funders.length; funderIndex++){\r\n            address funder = funders[funderIndex];\r\n            addressToAmountFunded[funder]=0;\r\n        }\r\n        funders = new address[](0);\r\n        (bool callSuccess,)=payable(msg.sender).call{value:address(this).balance}(\"\");\r\n        require(callSuccess,\"Call failed\");\r\n    }\r\n\r\n    modifier  onlyOwner(){\r\n        if(msg.sender!=i_owner){revert NotOwner();}\r\n        // require(msg.sender==i_owner,\"Sender is not owner\");\r\n        _;\r\n    }\r\n\r\n    receive() external payable { \r\n        fund();\r\n    }\r\n\r\n    fallback() external payable {\r\n        fund();\r\n     }\r\n    \r\n}",
         "file": "contracts/FundMe.sol"
+      },
+      "contracts/PriceConverter.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.18;\r\n\r\nimport {AggregatorV3Interface} from \"@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol\";\r\n\r\n\r\nlibrary PriceConverter{\r\n    function getPrice() internal  view returns(uint256){\r\n        AggregatorV3Interface priceFeed = AggregatorV3Interface(0xfEefF7c3fB57d18C5C6Cdd71e45D2D0b4F9377bF);\r\n        (,int256 answer,,,)=priceFeed.latestRoundData();\r\n        return uint256(answer *1e10);\r\n    }\r\n\r\n    function getConversionRate(uint256 ethAmount) internal  view returns (uint256){\r\n        uint256 ethPrice = getPrice();\r\n        uint256 ethAmountInUsd = (ethPrice * ethAmount)/1e18;\r\n        return ethAmountInUsd;\r\n    }\r\n\r\n    function getVersion() internal  view returns (uint256) {\r\n        return AggregatorV3Interface(0xfEefF7c3fB57d18C5C6Cdd71e45D2D0b4F9377bF).version();\r\n    }\r\n}",
+        "file": "contracts/PriceConverter.sol"
+      },
+      "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n// solhint-disable-next-line interface-starts-with-i\ninterface AggregatorV3Interface {\n  function decimals() external view returns (uint8);\n\n  function description() external view returns (string memory);\n\n  function version() external view returns (uint256);\n\n  function getRoundData(\n    uint80 _roundId\n  ) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n\n  function latestRoundData()\n    external\n    view\n    returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n}\n",
+        "file": "@chainlink/contracts@1.5.0/src/v0.8/shared/interfaces/AggregatorV3Interface.sol"
       }
     }
   }
